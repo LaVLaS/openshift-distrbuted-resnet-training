@@ -21,7 +21,7 @@ spec:
         spec:
           containers:
             - name: pytorch
-              image: path.to.image
+              image: quay.io/llasmith/pytorch-training:gpu-tools
               imagePullPolicy: Always
               env: &env
                 - name: NCCL_DEBUG
@@ -60,6 +60,8 @@ spec:
                   value: "net1"
                 - name: OUTPUT_DIR
                   value: "/mnt/storage/"
+                - name: TORCHRUN_SCRIPT
+                  value: "/opt/training-config/main.py"
               volumeMounts: &vol_mount
                 - name: storage-volume
                   mountPath: /mnt/storage
@@ -76,11 +78,6 @@ spec:
                 limits:
                   nvidia.com/gpu: "1"
                   openshift.io/port1: "1"
-              securityContext: &sec_profile
-                runAsUser: 0
-                runAsGroup: 0
-                capabilities:
-                  add: ["IPC_LOCK", "SYS_RESOURCE", "NET_RAW", "SYS_CHROOT", "AUDIT_WRITE"]
               command: ["/workspace/training/entrypoint.sh"]
           volumes: &vols
             - name: storage-volume
@@ -101,11 +98,10 @@ spec:
         spec:
           containers:
             - name: pytorch
-              image: path.to.image
+              image: quay.io/llasmith/pytorch-training:gpu-tools
               imagePullPolicy: Always
               env: *env
               volumeMounts: *vol_mount
               resources: *resource_req
-              securityContext: *sec_profile
               command: ["/workspace/training/entrypoint.sh"]
           volumes: *vols

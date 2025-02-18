@@ -28,7 +28,7 @@ torchrun --nproc_per_node=${NPROC_PER_NODE} \
          --node_rank=${NODE_NUM} \
          --master_addr=${MASTER_IP} \
          --master_port=${MASTER_PORT} \
-         main.py \
+         ${TORCHRUN_SCRIPT} \
          --backend=${BACKEND} \
          --batch_size=${BATCH_SIZE} \
          --data_path=${DATA_PATH} \

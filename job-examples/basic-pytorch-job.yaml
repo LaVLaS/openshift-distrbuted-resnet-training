@@ -2,7 +2,7 @@ apiVersion: kubeflow.org/v1
 kind: PyTorchJob
 metadata:
   name: pytorch-training
-  namespace: fine-tuning-testing
+  namespace: llasmith
 spec:
   pytorchReplicaSpecs:
     Master:
@@ -14,14 +14,19 @@ spec:
             k8s.v1.cni.cncf.io/networks: |-
               [
                 {
-                  "name": "network-port-1",
-                  "namespace": "default"
+                  "name": "llasmith-rdmashared-net",
+                  "namespace": "llasmith"
                 }
               ]
         spec:
+          serviceAccountName: pytorch-training-job-sa
           containers:
             - name: pytorch
-              image: path.to.image
+              command:
+                - /bin/bash
+                - -c
+                - sleep 86400
+              image: quay.io/llasmith/pytorch-training:gpu-tools
               imagePullPolicy: Always
               env: &env
                 - name: NCCL_DEBUG
@@ -35,14 +40,44 @@ spec:
                 - name: NCCL_IB_QPS_PER_CONNECTION
                   value: "1"
 #to disable infiniband and use TCP
-#                - name: NCCL_IB_DISABLE
-#                  value: "1"
-#                - name: NCCL_NET
-#                  value: "socket"
-#                - name: NCCL_IBEXT_DISABLE
-#                  value: "1"
+                - name: NCCL_IB_DISABLE
+                  value: "1"
+                - name: NCCL_NET
+                  value: "socket"
+                - name: NCCL_IBEXT_DISABLE
+                  value: "1"
+                - name: SHARED_PATH
+                  value: "/mnt/storage"
+                - name: BACKEND
+                  value: "nccl"
+                - name: BATCH_SIZE
+                  value: "128"
+                - name: DATA_PATH
+                  value: "/mnt/storage/dataset/cifar10_imagefolder"
+                - name: NUM_TRAIN_EPOCHS
+                  value: "2"
+                - name: LEARNING_RATE
+                  value: "0.001"
+                - name: NUM_WORKERS
+                  value: "6"
+                - name: PRINT_INTERVAL
+                  value: "5"
+                - name: NNODES
+                  value: "3"
+                - name: NPROC_PER_NODE
+                  value: "1"
+                - name: MASTER_PORT
+                  value: "23456"
+                - name: NETWORK_INTERFACE
+                  value: "net1"
+                - name: OUTPUT_DIR
+                  value: "/mnt/storage/output"
+                - name: TORCHRUN_SCRIPT
+                  value: "/opt/training-config/main.py"
 
               volumeMounts:
+                - name: training-config
+                  mountPath: /opt/training-config
                 - name: storage-volume
                   mountPath: /mnt/storage
                 - name: shm-volume
@@ -52,19 +87,20 @@ spec:
                   nvidia.com/gpu: "1"
                   memory: "10Gi"
                   cpu: "1"
-                  openshift.io/port1: "1"
+                  rdma/rdma_shared_device_eth: "1"
                 limits:
                   nvidia.com/gpu: "1"
-                  openshift.io/port1: "1"
-              securityContext:
-                runAsUser: 0
-                runAsGroup: 0
-                capabilities:
-                  add: ["IPC_LOCK", "SYS_RESOURCE", "NET_RAW", "SYS_CHROOT", "AUDIT_WRITE"]
+                  rdma/rdma_shared_device_eth: "1"
+              #securityContext: &sec_profile
+              #  capabilities:
+              #    add: ["IPC_LOCK", "SYS_RESOURCE", "NET_RAW", "SYS_CHROOT", "AUDIT_WRITE"]
           volumes:
+            - name: training-config
+              configMap:
+                name: resnet50-training
             - name: storage-volume
               persistentVolumeClaim:
-                claimName: res50-storage
+                claimName: resnet50-storage
             - name: shm-volume
               emptyDir:
                 medium: Memory
@@ -78,17 +114,24 @@ spec:
             k8s.v1.cni.cncf.io/networks: |-
               [
                 {
-                  "name": "network-port-1",
-                  "namespace": "default"
+                  "name": "llasmith-rdmashared-net",
+                  "namespace": "llasmith"
                 }
               ]
         spec:
+          serviceAccountName: pytorch-training-job-sa
           containers:
             - name: pytorch
-              image: path.to.image
+              command:
+                - /bin/bash
+                - -c
+                - sleep 86400
+              image: quay.io/llasmith/pytorch-training:gpu-tools
               imagePullPolicy: Always
               env: *env
               volumeMounts:
+                - name: training-config
+                  mountPath: /opt/training-config
                 - name: storage-volume
                   mountPath: /mnt/storage
                 - name: shm-volume
@@ -98,19 +141,18 @@ spec:
                   nvidia.com/gpu: "1"
                   memory: "10Gi"
                   cpu: "1"
-                  openshift.io/port1: "1"
+                  rdma/rdma_shared_device_eth: "1"
                 limits:
                   nvidia.com/gpu: "1"
-                  openshift.io/port1: "1"
-              securityContext:
-                runAsUser: 0
-                runAsGroup: 0
-                capabilities:
-                  add: ["IPC_LOCK", "SYS_RESOURCE", "NET_RAW", "SYS_CHROOT", "AUDIT_WRITE"]
+                  rdma/rdma_shared_device_eth: "1"
+              #securityContext: *sec_profile
           volumes:
+            - name: training-config
+              configMap:
+                name: resnet50-training
             - name: storage-volume
               persistentVolumeClaim:
-                claimName: res50-storage
+                claimName: resnet50-storage
             - name: shm-volume
               emptyDir:
                 medium: Memory
