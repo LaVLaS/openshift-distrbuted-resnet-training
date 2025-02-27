@@ -22,6 +22,11 @@ else
     echo "MASTER_IP set to $MASTER_IP (Worker Node)"
 fi
 
+# Install any additional python packages
+if [[ -f "$(dirname $0)/requirements.txt" ]]; then
+    pip install -r "$(dirname $0)/requirements.txt"
+fi
+
 # Construct and run the torchrun command
 torchrun --nproc_per_node=${NPROC_PER_NODE} \
          --nnodes=${NNODES} \

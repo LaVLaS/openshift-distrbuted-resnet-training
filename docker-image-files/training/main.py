@@ -31,6 +31,20 @@ def get_cgroup_metrics():
     cpu_usage_stat_name = "usage_usec"
     mem_usage_path = "/sys/fs/cgroup/memory.current"
 
+    # If the container does not have memory.current in the expected location then
+    #   it is mostly likely a privileged container and we need to find it under the
+    #   cgroup namespace
+    if not os.path.exists(mem_usage_path):
+        cgroup_namespace = ""
+        with open("/proc/self/cgroup", "r") as f:
+            line = f.readline().split(":")
+
+            # File is delimited by colon in the format
+            # 0::<cgroup namespace root>
+            cgroup_namespace = str.strip(line[2])
+
+        mem_usage_path = f"/sys/fs/cgroup{cgroup_namespace}/memory.current"
+
     with open(cpu_usage_path, "r") as f:
         line = f.readline()
         while line:
@@ -40,6 +54,7 @@ def get_cgroup_metrics():
                 )  # Convert nanoseconds to seconds
                 break
             line = f.readline()
+
     with open(mem_usage_path, "r") as f:
         mem_usage = int(f.read().strip()) / (1024**2)  # Convert bytes to MB
 

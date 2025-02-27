@@ -26,7 +26,8 @@ spec:
                 - /bin/bash
                 - -c
                 - sleep 86400
-              image: quay.io/llasmith/pytorch-training:gpu-tools
+              #image: &training-image quay.io/modh/training:py311-cuda121-torch241
+              image: &training-image quay.io/llasmith/pytorch-training:gpu-tools
               imagePullPolicy: Always
               env: &env
                 - name: NCCL_DEBUG
@@ -91,9 +92,11 @@ spec:
                 limits:
                   nvidia.com/gpu: "1"
                   rdma/rdma_shared_device_eth: "1"
-              #securityContext: &sec_profile
-              #  capabilities:
-              #    add: ["IPC_LOCK", "SYS_RESOURCE", "NET_RAW", "SYS_CHROOT", "AUDIT_WRITE"]
+              securityContext: &sec_profile
+                privileged: true
+                capabilities:
+                  #add: ["IPC_LOCK", "SYS_RESOURCE", "NET_RAW", "SYS_CHROOT", "AUDIT_WRITE"]
+                  add: ["IPC_LOCK"]
           volumes:
             - name: training-config
               configMap:
@@ -126,7 +129,7 @@ spec:
                 - /bin/bash
                 - -c
                 - sleep 86400
-              image: quay.io/llasmith/pytorch-training:gpu-tools
+              image: *training-image
               imagePullPolicy: Always
               env: *env
               volumeMounts:
@@ -145,7 +148,7 @@ spec:
                 limits:
                   nvidia.com/gpu: "1"
                   rdma/rdma_shared_device_eth: "1"
-              #securityContext: *sec_profile
+              securityContext: *sec_profile
           volumes:
             - name: training-config
               configMap:

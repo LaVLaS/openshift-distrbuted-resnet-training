@@ -1,0 +1,6 @@
+resnest
+matplotlib
+torch
+torchvision
+torchtext
+torchaudio
